@@ -1,6 +1,15 @@
 <template>
   <div class="min-h-screen bg-[#fafaf9] pb-24">
 
+    <!-- 토스트 -->
+    <div
+      v-if="toastMessage"
+      class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg"
+      :class="toastType === 'error' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'"
+    >
+      {{ toastMessage }}
+    </div>
+
     <!-- 헤더 -->
     <div class="sticky top-16 z-40 bg-white border-b border-gray-200">
       <div class="max-w-4xl mx-auto px-4 py-4">
@@ -184,7 +193,9 @@ export default {
         bankName: '국민은행',
         accountNumber: '123456-78-901234',
         accountHolder: '김철수',
-      }
+      },
+      toastMessage: '',
+      toastType: 'info',
     }
   },
   methods: {
@@ -193,17 +204,24 @@ export default {
       console.log('카카오페이 결제 진행')
       setTimeout(() => {
         this.isProcessing = false
-        alert('결제가 완료되었습니다!')
+        this.showToast('결제가 완료되었습니다!', 'success')
         this.onNavigate('meeting-detail')
       }, 2000)
     },
     handleBankTransfer() {
       if (confirm('계좌번호가 복사되었습니다.\n입금 후 참가 신청이 완료됩니다.')) {
         navigator.clipboard.writeText(this.paymentInfo.accountNumber)
-        alert('참가 신청이 완료되었습니다.\n입금 확인 후 최종 승인됩니다.')
+        this.showToast('참가 신청이 완료되었습니다.\n입금 확인 후 최종 승인됩니다.', 'success')
         this.onNavigate('meeting-detail')
       }
-    }
+    },
+    showToast(message, type = 'info') {
+      this.toastMessage = message
+      this.toastType = type
+      setTimeout(() => {
+        this.toastMessage = ''
+      }, 3000)
+    },
   }
 }
 </script>

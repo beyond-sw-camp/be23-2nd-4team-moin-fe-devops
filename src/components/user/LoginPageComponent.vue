@@ -1,5 +1,14 @@
 <template>
   <div class="min-h-screen bg-white flex items-center justify-center p-4">
+    <!-- 토스트 -->
+    <div
+      v-if="toastMessage"
+      class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg"
+      :class="toastType === 'error' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'"
+    >
+      {{ toastMessage }}
+    </div>
+
     <div class="w-full max-w-md">
 
       <!-- 로고 -->
@@ -156,6 +165,8 @@ export default {
       googleScope: "openid email profile",
       kakaoClientId: "48518f1bb3f5df24e6a1a4fb8d8110c4",
       kakaoRedirectUrl: `${process.env.VUE_APP_BASE_URL }/oauth/kakao/redirect`,
+      toastMessage: '',
+      toastType: 'info',
     }
   },
   methods: {
@@ -179,7 +190,7 @@ export default {
         this.$router.push('/')
       } catch (e) {
         console.error('로그인 실패:', e)
-        alert('로그인 실패')
+        this.showToast('로그인 실패', 'error')
       }
     },
     handleSocialLogin(provider) {
@@ -188,7 +199,7 @@ export default {
     },
     startGoogleLogin() {
       if (!this.googleClientId) {
-        alert('googleClientId가 비어있습니다. LoginPageComponent.vue에서 값을 설정해주세요.')
+        this.showToast('googleClientId가 비어있습니다. LoginPageComponent.vue에서 값을 설정해주세요.', 'error')
         return
       }
 
@@ -203,7 +214,7 @@ export default {
     },
     startKakaoLogin() {
       if (!this.kakaoClientId) {
-        alert('kakaoClientId가 비어있습니다. LoginPageComponent.vue에서 값을 설정해주세요.')
+        this.showToast('kakaoClientId가 비어있습니다. LoginPageComponent.vue에서 값을 설정해주세요.', 'error')
         return
       }
 
@@ -212,7 +223,14 @@ export default {
         `${kakaoUrl}?client_id=${encodeURIComponent(this.kakaoClientId)}` +
         `&redirect_uri=${encodeURIComponent(this.kakaoRedirectUrl)}` +
         `&response_type=code`
-    }
+    },
+    showToast(message, type = 'info') {
+      this.toastMessage = message
+      this.toastType = type
+      setTimeout(() => {
+        this.toastMessage = ''
+      }, 3000)
+    },
   }
 }
 </script>

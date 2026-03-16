@@ -166,6 +166,11 @@ export default {
       const crewId = notification.crewId ?? (refType === "CREW" ? targetId : null);
       const meetingId = notification.meetingId ?? (refType === "MEETING" ? targetId : null);
 
+      // ✅ 모임 관련 알림(예: "모임에 참여했습니다")은 항상 모임 디테일로 이동
+      if (meetingId) {
+        return crewId ? { path: `/meeting/${meetingId}`, query: { crewId } } : { path: `/meeting/${meetingId}` };
+      }
+
       const cId = targetId || crewId;
       if (type === "APPLY" && cId) {
         return { path: `/crew/${cId}/manage` };
