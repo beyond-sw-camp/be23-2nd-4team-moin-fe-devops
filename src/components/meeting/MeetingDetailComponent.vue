@@ -528,7 +528,6 @@
 import axios from "axios";
 import { loadKakaoMaps } from "@/map/kakaoMap";
 import LnbMenuComponent from "@/components/common/LnbMenuComponent.vue";
-import dayjs from "@/plugins/dayjs";
 import MeetingMembersComponent from "@/components/meeting/MeetingMembersComponent.vue";
 
 const API = axios.create({ baseURL: process.env.VUE_APP_API_BASE_URL });
@@ -727,23 +726,16 @@ export default {
       return myRow?.meetingMemberId ?? null;
     },
 
+   
     canRefund() {
       const raw = this.meetingData.datetime;
       if (!raw) return false;
-      const meetingAt = dayjs.utc(raw).valueOf();
-      if (!dayjs.utc(raw).isValid()) return false;
+      const normalized = typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
+      const meetingAt = new Date(normalized).getTime();
+      if (isNaN(meetingAt)) return false;
       const threeHoursMs = 3 * 60 * 60 * 1000;
-      return meetingAt - dayjs().valueOf() > threeHoursMs;
+      return meetingAt - Date.now() > threeHoursMs;
     },
-    // canRefund() {
-    //   const raw = this.meetingData.datetime;
-    //   if (!raw) return false;
-    //   const normalized = typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
-    //   const meetingAt = new Date(normalized).getTime();
-    //   if (isNaN(meetingAt)) return false;
-    //   const threeHoursMs = 3 * 60 * 60 * 1000;
-    //   return meetingAt - Date.now() > threeHoursMs;
-    // },
     isOwnerAlone() {
       return this.isOwner && this.approvedParticipants.length <= 1;
     },
@@ -866,17 +858,10 @@ export default {
     isMeetingTimePassed(datetime) {
       const raw = datetime ?? this.meetingData?.datetime;
       if (!raw) return false;
-      const d = dayjs.utc(raw);
-      return d.isValid() && d.valueOf() <= dayjs().valueOf();
+      const normalized = typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
+      const meetingAt = new Date(normalized).getTime();
+      return !isNaN(meetingAt) && meetingAt <= Date.now();
     },
-
-    // isMeetingTimePassed(datetime) {
-    //   const raw = datetime ?? this.meetingData?.datetime;
-    //   if (!raw) return false;
-    //   const normalized = typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
-    //   const meetingAt = new Date(normalized).getTime();
-    //   return !isNaN(meetingAt) && meetingAt <= Date.now();
-    // },
 
     async fetchMeetingDetail() {
       const params = this.crewId ? { crewId: this.crewId } : {};
@@ -1375,17 +1360,12 @@ export default {
       const s = (status || "").toString().toUpperCase();
       if (s === "OPEN") return "badge--open"; if (s === "CLOSED") return "badge--closed"; return "badge--done";
     },
+
     formatDateTime(dt) {
       if (!dt) return "";
-      const d = dayjs.utc(dt).tz("Asia/Seoul");
-      if (!d.isValid()) return String(dt);
-      return d.format("YYYY-MM-DD HH:mm");
+      const s = dt.toString().replace("T", " ");
+      return s.length >= 16 ? s.slice(0, 16) : s;
     },
-    // formatDateTime(dt) {
-    //   if (!dt) return "";
-    //   const s = dt.toString().replace("T", " ");
-    //   return s.length >= 16 ? s.slice(0, 16) : s;
-    // },
     formatDistance(meters) {
       const m = Number(meters || 0);
       return m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.round(m)}m`;
