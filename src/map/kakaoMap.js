@@ -4,6 +4,8 @@ export function loadKakaoMaps() {
     // 이미 로드돼 있으면 바로 반환
     if (window.kakao?.maps?.LatLng) return resolve(window.kakao)
 
+
+      
     const existing = document.querySelector('script[data-kakao-maps="true"]')
     if (existing) {
       // 스크립트는 있는데 아직 load가 안 끝난 경우를 대비
