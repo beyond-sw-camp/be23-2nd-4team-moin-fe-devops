@@ -176,7 +176,6 @@
 
 <script>
 import axios from "axios";
-import dayjs from "@/plugins/dayjs";
 import LnbMenuComponent from "@/components/common/LnbMenuComponent.vue";
 
 const CATEGORY_OPTIONS = [
@@ -333,47 +332,27 @@ export default {
 
     formatTime(dt) {
       if (!dt) return "";
-      const d = dayjs.utc(dt).tz("Asia/Seoul");
-      if (!d.isValid()) return "";
-      const min = String(d.minute()).padStart(2, "0");
-      const ampm = d.hour() < 12 ? "오전" : "오후";
-      const hour = d.hour() % 12 || 12;
+      const d = new Date(dt);
+      const min = String(d.getMinutes()).padStart(2, "0");
+      const ampm = d.getHours() < 12 ? "오전" : "오후";
+      const hour = d.getHours() % 12 || 12;
       return `${ampm} ${hour}:${min}`;
     },
 
-    // formatTime(dt) {
-    //   if (!dt) return "";
-    //   const d = new Date(dt);
-    //   const min = String(d.getMinutes()).padStart(2, "0");
-    //   const ampm = d.getHours() < 12 ? "오전" : "오후";
-    //   const hour = d.getHours() % 12 || 12;
-    //   return `${ampm} ${hour}:${min}`;
-    // },
-
     dayLabel(dt) {
       if (!dt) return "";
-      const d = dayjs.utc(dt).tz("Asia/Seoul").startOf("day");
-      const today = dayjs().tz("Asia/Seoul").startOf("day");
-      const diff = d.diff(today, "day");
-      if (diff === 0) return "오늘";
-      if (diff === 1) return "내일";
+      const today = new Date();
+      const d = new Date(dt);
+      const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+      const dStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (todayStr === dStr) return "오늘";
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${tomorrow.getMonth()}-${tomorrow.getDate()}`;
+      if (dStr === tomorrowStr) return "내일";
       const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
-      return dayNames[d.day()];
+      return dayNames[d.getDay()];
     },
-    // dayLabel(dt) {
-    //   if (!dt) return "";
-    //   const today = new Date();
-    //   const d = new Date(dt);
-    //   const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-    //   const dStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    //   if (todayStr === dStr) return "오늘";
-    //   const tomorrow = new Date(today);
-    //   tomorrow.setDate(today.getDate() + 1);
-    //   const tomorrowStr = `${tomorrow.getFullYear()}-${tomorrow.getMonth()}-${tomorrow.getDate()}`;
-    //   if (dStr === tomorrowStr) return "내일";
-    //   const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
-    //   return dayNames[d.getDay()];
-    // },
     toKrStatus(s) {
       return (
         { OPEN: "모집중", CLOSED: "모집마감", FINISHED: "종료" }[s] ?? (s || "")
@@ -384,38 +363,21 @@ export default {
       if (s === "CLOSED") return "status--closed";
       return "status--done";
     },
+
     ddayLabel(dt) {
       if (!dt) return "";
-      const meetingDay = dayjs.utc(dt).tz("Asia/Seoul").startOf("day");
-      const today = dayjs().tz("Asia/Seoul").startOf("day");
-      const diff = meetingDay.diff(today, "day");
+      const diff = Math.ceil((new Date(dt) - new Date()) / 86400000);
       if (diff === 0) return "D-DAY";
       if (diff < 0) return `D+${Math.abs(diff)}`;
       return `D-${diff}`;
     },
-    // ddayLabel(dt) {
-    //   if (!dt) return "";
-    //   const diff = Math.ceil((new Date(dt) - new Date()) / 86400000);
-    //   if (diff === 0) return "D-DAY";
-    //   if (diff < 0) return `D+${Math.abs(diff)}`;
-    //   return `D-${diff}`;
-    // },
 
     ddayClass(dt) {
-      if (!dt) return "dday--normal";
-      const meetingDay = dayjs.utc(dt).tz("Asia/Seoul").startOf("day");
-      const today = dayjs().tz("Asia/Seoul").startOf("day");
-      const diff = meetingDay.diff(today, "day");
+      const diff = Math.ceil((new Date(dt) - new Date()) / 86400000);
       if (diff <= 0) return "dday--today";
       if (diff <= 3) return "dday--soon";
       return "dday--normal";
     },
-    // ddayClass(dt) {
-    //   const diff = Math.ceil((new Date(dt) - new Date()) / 86400000);
-    //   if (diff <= 0) return "dday--today";
-    //   if (diff <= 3) return "dday--soon";
-    //   return "dday--normal";
-    // },
 
     normalizeMeeting(m) {
       if (!m || m.meetingId == null) return null;
