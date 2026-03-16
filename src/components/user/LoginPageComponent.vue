@@ -137,7 +137,7 @@
 import axios from 'axios'
 import LogoComponent from './LogoComponent.vue'
 
-const API = axios.create({ baseURL: process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080' })
+const API = axios.create({ baseURL: process.env.VUE_APP_API_BASE_URL})
 
 export default {
   name: 'LoginPageComponent',
@@ -172,7 +172,7 @@ export default {
           throw new Error('TokenDto 응답이 비어있습니다.')
         }
 
-        localStorage.setItem('token', accessToken)
+        gtorage.setItem('token', accessToken)
         localStorage.setItem('refreshToken', refreshToken)
 
         this.handleLogin?.()
