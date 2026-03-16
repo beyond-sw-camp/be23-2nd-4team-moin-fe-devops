@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="min-h-screen bg-white flex items-center justify-center p-4">
     <div class="w-full max-w-md">
 
@@ -172,7 +172,7 @@ export default {
           throw new Error('TokenDto 응답이 비어있습니다.')
         }
 
-        gtorage.setItem('token', accessToken)
+        localStorage.setItem('token', accessToken)
         localStorage.setItem('refreshToken', refreshToken)
 
         this.handleLogin?.()
