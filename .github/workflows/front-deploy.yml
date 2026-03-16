@@ -25,6 +25,10 @@ jobs:
         working-directory: .
         run: npm run build
 
+      - name: create env file
+        run: |
+          echo "VUE_APP_KAKAO_MAP_KEY=${{ secrets.VUE_APP_KAKAO_MAP_KEY }}" >> .env
+
       - name: setup aws cli
         uses: aws-actions/configure-aws-credentials@v2
         with:
