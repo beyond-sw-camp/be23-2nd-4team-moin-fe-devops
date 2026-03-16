@@ -122,7 +122,6 @@
 </template>
 
 <script>
-import dayjs from '@/plugins/dayjs';
 import MeetingCreatePageComponent from '../meeting/MeetingCreatePageComponent.vue';
 
 export default {
@@ -163,18 +162,14 @@ export default {
 
   computed: {
     visibleMeetings() {
+      
       const parseDate = (raw) => {
         if (!raw) return null;
-        const d = dayjs.utc(raw);
-        return d.isValid() ? d.toDate() : null;
+        const normalized =
+          typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
+        const d = new Date(normalized);
+        return isNaN(d.getTime()) ? null : d;
       };
-      // const parseDate = (raw) => {
-      //   if (!raw) return null;
-      //   const normalized =
-      //     typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
-      //   const d = new Date(normalized);
-      //   return isNaN(d.getTime()) ? null : d;
-      // };
       const isEnded = (m) => {
         const r = (m.recruitStatus || "").toString().toUpperCase();
         const kr = (m.status || "").toString().trim();
@@ -228,19 +223,12 @@ export default {
 
     formatDatetime(dt) {
       if (!dt) return "";
-      const d = dayjs.utc(dt).tz('Asia/Seoul');
-      if (!d.isValid()) return String(dt);
-      return `${d.month() + 1}/${d.date()} ${String(d.hour()).padStart(2, "0")}:${String(d.minute()).padStart(2, "0")}`;
+      const normalized =
+        typeof dt === "string" && dt.includes(" ") ? dt.replace(" ", "T") : dt;
+      const d = new Date(normalized);
+      if (isNaN(d.getTime())) return String(dt);
+      return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     },
-
-    // formatDatetime(dt) {
-    //   if (!dt) return "";
-    //   const normalized =
-    //     typeof dt === "string" && dt.includes(" ") ? dt.replace(" ", "T") : dt;
-    //   const d = new Date(normalized);
-    //   if (isNaN(d.getTime())) return String(dt);
-    //   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    // },
 
     getStatusColor(status) {
       const map = {
@@ -261,32 +249,19 @@ export default {
       if (this.isMeetingEnded(meeting)) return null;
       const raw = meeting.datetime ?? meeting.meetingAt;
       if (!raw) return null;
-      // UTC로 파싱 후 KST로 변환하여 날짜 기준 D-day 계산
-      const meetingDay = dayjs.utc(raw).tz('Asia/Seoul').startOf('day');
-      if (!meetingDay.isValid()) return null;
-      const today = dayjs().tz('Asia/Seoul').startOf('day');
-      const diffDays = meetingDay.diff(today, 'day');
+      const normalized =
+        typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
+      const d = new Date(normalized);
+      if (isNaN(d.getTime())) return null;
+      const meetingDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTime = today.getTime();
+      const meetingTime = meetingDate.getTime();
+      const diffDays = Math.round((meetingTime - todayTime) / (24 * 60 * 60 * 1000));
       if (diffDays < 0) return null;
       return "D-" + diffDays;
     },
-
-    // getDday(meeting) {
-    //   if (this.isMeetingEnded(meeting)) return null;
-    //   const raw = meeting.datetime ?? meeting.meetingAt;
-    //   if (!raw) return null;
-    //   const normalized =
-    //     typeof raw === "string" && raw.includes(" ") ? raw.replace(" ", "T") : raw;
-    //   const d = new Date(normalized);
-    //   if (isNaN(d.getTime())) return null;
-    //   const meetingDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    //   const today = new Date();
-    //   today.setHours(0, 0, 0, 0);
-    //   const todayTime = today.getTime();
-    //   const meetingTime = meetingDate.getTime();
-    //   const diffDays = Math.round((meetingTime - todayTime) / (24 * 60 * 60 * 1000));
-    //   if (diffDays < 0) return null;
-    //   return "D-" + diffDays;
-    // },
   },
 };
 </script>

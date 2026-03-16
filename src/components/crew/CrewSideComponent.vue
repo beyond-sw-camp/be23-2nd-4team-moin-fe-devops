@@ -113,7 +113,6 @@
 
 <script>
 import OtherCrewMemberComponent from "@/components/crew/OtherCrewMemberComponent.vue";
-import dayjs from '@/plugins/dayjs';
 
 export default {
   name: "CrewSideComponent",
@@ -197,16 +196,12 @@ export default {
       this.$refs.otherMemberModal?.open(member);
     },
 
+  
     parseMeetingTime(dt) {
       if (!dt) return null;
-      const d = dayjs.utc(dt);
-      return d.isValid() ? d.valueOf() : null;
+      const d = new Date(typeof dt === "string" && dt.includes(" ") ? dt.replace(" ", "T") : dt);
+      return isNaN(d.getTime()) ? null : d.getTime();
     },
-    // parseMeetingTime(dt) {
-    //   if (!dt) return null;
-    //   const d = new Date(typeof dt === "string" && dt.includes(" ") ? dt.replace(" ", "T") : dt);
-    //   return isNaN(d.getTime()) ? null : d.getTime();
-    // },
     handleMeetingClick(meeting) {
       const meetingId = Number(meeting?.meetingId);
       if (!Number.isFinite(meetingId) || meetingId <= 0) {
@@ -220,18 +215,13 @@ export default {
         query: crewId ? { crewId: String(crewId) } : {},
       });
     },
+  
     formatDatetime(dt) {
       if (!dt) return "";
-      const d = dayjs.utc(dt).tz('Asia/Seoul');
-      if (!d.isValid()) return String(dt);
-      return `${d.month() + 1}/${d.date()} ${String(d.hour()).padStart(2, "0")}:${String(d.minute()).padStart(2, "0")}`;
+      const d = new Date(typeof dt === "string" && dt.includes(" ") ? dt.replace(" ", "T") : dt);
+      if (isNaN(d.getTime())) return String(dt);
+      return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     },
-    // formatDatetime(dt) {
-    //   if (!dt) return "";
-    //   const d = new Date(typeof dt === "string" && dt.includes(" ") ? dt.replace(" ", "T") : dt);
-    //   if (isNaN(d.getTime())) return String(dt);
-    //   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    // },
     statusClass(s) {
       return s === "모집중" ? "status--open" : s === "모집마감" ? "status--closed" : "status--done";
     },
