@@ -37,4 +37,4 @@ jobs:
 
       - name: invalidate cloudfront
         # 배포id
-        run: aws cloudfront create-invalidation --distribution-id E7TZCPCTDPD2O --paths "/*"
+        run: aws cloudfront create-invalidation --distribution-id E1DHAT37L6IHOA --paths "/*"
