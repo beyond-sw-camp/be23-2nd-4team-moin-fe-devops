@@ -622,7 +622,6 @@ export default {
   height: 600px;
   background: #F0F4F8;
   border-radius: 18px;
-  overflow: hidden;
   position: relative;
   font-family: 'Pretendard', -apple-system, sans-serif;
 }

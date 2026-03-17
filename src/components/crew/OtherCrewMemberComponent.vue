@@ -1,137 +1,141 @@
 <template>
   <div>
     <!-- (1) 정보보기 모달 -->
-    <div v-if="infoModal.open" class="cm-backdrop" @click.self="closeInfoModal">
-      <div class="cm-modal">
-        <div v-if="infoModal.loading" class="cm-modal-body cm-loading">
-          <span class="cm-spinner"></span>
-          <p>크루원 정보를 불러오는 중...</p>
-        </div>
-        <template v-else-if="infoModal.member">
-          <div class="cm-modal-hd">
-            <img
-              v-if="infoModal.member.profileImageUrl"
-              :src="infoModal.member.profileImageUrl"
-              class="cm-avatar"
-            />
-            <div v-else class="cm-avatar cm-avatar--ph">
-              <svg class="cm-avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <path fill-rule="evenodd"
-                  d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </div>
-
-            <div class="cm-namebox">
-              <div class="cm-name-row">
-                <span class="cm-name">{{ infoModal.member.nickname }}</span>
-                <span class="cm-badge">{{ formatRole(infoModal.member.crewRole || infoModal.member.role) }}</span>
-              </div>
-              <div class="cm-sub">크루원 정보 · 가입일 {{ formatJoinedAt(infoModal.member.joinedAt) }}</div>
-            </div>
-
-            <!-- ✅ crewId 함께 전달 -->
-            <button class="cm-dm-btn" @click="onDmClick(infoModal.member)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" stroke-width="2.2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 2L11 13"/>
-                <path d="M22 2L15 22 11 13 2 9l20-7z"/>
-              </svg>
-              DM
-            </button>
-            <button class="cm-x" @click="closeInfoModal">✕</button>
+    <Teleport to="body">
+      <div v-if="infoModal.open" class="cm-backdrop" @click.self="closeInfoModal">
+        <div class="cm-modal">
+          <div v-if="infoModal.loading" class="cm-modal-body cm-loading">
+            <span class="cm-spinner"></span>
+            <p>크루원 정보를 불러오는 중...</p>
           </div>
-
-          <div class="cm-meta-area">
-            <span v-if="memberGender(infoModal.member)" class="cm-meta-item">{{ memberGender(infoModal.member) }}</span>
-            <span v-if="memberAge(infoModal.member) != null" class="cm-meta-item">{{ memberAge(infoModal.member) }}</span>
-            <span v-if="memberMbti(infoModal.member)" class="cm-meta-item">{{ memberMbti(infoModal.member) }}</span>
-            <span v-if="memberMannerScore(infoModal.member) != null" class="cm-meta-item">매너 {{ memberMannerScore(infoModal.member) }}</span>
-            <span v-for="cat in categoryTypesList(infoModal.member)" :key="cat" class="cm-meta-tag">
-              {{ categoryLabel(cat) }}
-            </span>
-          </div>
-
-          <div class="cm-modal-body">
-            <div class="cm-info-grid">
-              <div class="cm-info-item">
-                <div class="cm-k">크루 권한</div>
-                <div class="cm-v">{{ formatRole(infoModal.member.crewRole || infoModal.member.role) }}</div>
-              </div>
-              <div class="cm-info-item">
-                <div class="cm-k">가입일</div>
-                <div class="cm-v">{{ formatJoinedAt(infoModal.member.joinedAt) }}</div>
-              </div>
-            </div>
-            <button class="cm-secondary-btn" @click="openJoinedCrews">
-              <svg class="cm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="5" y="3" width="14" height="18" rx="2"></rect>
-                <path d="M9 8h6M9 12h6M9 16h4"></path>
-              </svg>
-              가입한 크루 목록 보기
-            </button>
-          </div>
-        </template>
-        <!-- ✅ 닫는 태그 -->
-      </div>
-    </div>
-
-    <!-- (2) 가입 크루 목록 모달 -->
-    <div v-if="crewsModal.open" class="cm-backdrop" @click.self="closeCrewsModal">
-      <div class="cm-modal cm-modal--tall">
-        <div class="cm-modal-hd cm-modal-hd--between">
-          <div class="cm-title">가입한 크루 목록</div>
-          <button class="cm-x" @click="closeCrewsModal">✕</button>
-        </div>
-
-        <div class="cm-modal-body cm-scroll">
-          <div v-if="crewsModal.loading" class="cm-muted">불러오는 중...</div>
-          <div v-else-if="crewsModal.items.length === 0" class="cm-muted">가입한 크루가 없습니다.</div>
-          <div v-else class="cm-crew-list">
-            <div v-for="c in crewsModal.items" :key="c.crewId" class="cm-crew-card">
-              <img v-if="c.crewImage" :src="c.crewImage" :alt="c.crewName" class="cm-crew-img" />
-              <div v-else class="cm-crew-img cm-crew-img--ph">
-                <svg class="cm-icon cm-icon--crew" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="15" cy="5" r="2"></circle>
-                  <path d="M13 8l-2 4 3 2 2-3 3 1"></path>
-                  <path d="M10 12l-4 3"></path>
-                  <path d="M13 14l-2 5"></path>
+          <template v-else-if="infoModal.member">
+            <div class="cm-modal-hd">
+              <img
+                v-if="infoModal.member.profileImageUrl"
+                :src="infoModal.member.profileImageUrl"
+                class="cm-avatar"
+              />
+              <div v-else class="cm-avatar cm-avatar--ph">
+                <svg class="cm-avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
               </div>
-              <div class="cm-crew-info">
-                <div class="cm-crew-name">{{ c.crewName }}</div>
-                <div class="cm-crew-sub">
-                  <span v-if="c.categoryType" class="cm-crew-cat">{{ categoryLabel(c.categoryType) }}</span>
-                  <span v-if="c.region || c.district" class="cm-crew-loc">
-                    <span> · </span>
-                    <svg class="cm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 21s-6-5.6-6-10a6 6 0 1112 0c0 4.4-6 10-6 10z"></path>
-                      <circle cx="12" cy="11" r="2.2"></circle>
-                    </svg>
-                    {{ [c.region, c.district].filter(Boolean).join(" ") }}
-                  </span>
+
+              <div class="cm-namebox">
+                <div class="cm-name-row">
+                  <span class="cm-name">{{ infoModal.member.nickname }}</span>
+                  <span class="cm-badge">{{ formatRole(infoModal.member.crewRole || infoModal.member.role) }}</span>
                 </div>
-                <div v-if="c.currentMemberCount != null" class="cm-crew-count">
-                  <svg class="cm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="9" cy="8" r="3"></circle>
-                    <circle cx="17" cy="9" r="2.5"></circle>
-                    <path d="M3 19a6 6 0 0112 0"></path>
-                    <path d="M13.5 19a4.5 4.5 0 018.5 0"></path>
+                <div class="cm-sub">크루원 정보 · 가입일 {{ formatJoinedAt(infoModal.member.joinedAt) }}</div>
+              </div>
+
+              <!-- ✅ crewId 함께 전달 -->
+              <button class="cm-dm-btn" @click="onDmClick(infoModal.member)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 2L11 13"/>
+                  <path d="M22 2L15 22 11 13 2 9l20-7z"/>
+                </svg>
+                DM
+              </button>
+              <button class="cm-x" @click="closeInfoModal">✕</button>
+            </div>
+
+            <div class="cm-meta-area">
+              <span v-if="memberGender(infoModal.member)" class="cm-meta-item">{{ memberGender(infoModal.member) }}</span>
+              <span v-if="memberAge(infoModal.member) != null" class="cm-meta-item">{{ memberAge(infoModal.member) }}</span>
+              <span v-if="memberMbti(infoModal.member)" class="cm-meta-item">{{ memberMbti(infoModal.member) }}</span>
+              <span v-if="memberMannerScore(infoModal.member) != null" class="cm-meta-item">매너 {{ memberMannerScore(infoModal.member) }}</span>
+              <span v-for="cat in categoryTypesList(infoModal.member)" :key="cat" class="cm-meta-tag">
+                {{ categoryLabel(cat) }}
+              </span>
+            </div>
+
+            <div class="cm-modal-body">
+              <div class="cm-info-grid">
+                <div class="cm-info-item">
+                  <div class="cm-k">크루 권한</div>
+                  <div class="cm-v">{{ formatRole(infoModal.member.crewRole || infoModal.member.role) }}</div>
+                </div>
+                <div class="cm-info-item">
+                  <div class="cm-k">가입일</div>
+                  <div class="cm-v">{{ formatJoinedAt(infoModal.member.joinedAt) }}</div>
+                </div>
+              </div>
+              <button class="cm-secondary-btn" @click="openJoinedCrews">
+                <svg class="cm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="5" y="3" width="14" height="18" rx="2"></rect>
+                  <path d="M9 8h6M9 12h6M9 16h4"></path>
+                </svg>
+                가입한 크루 목록 보기
+              </button>
+            </div>
+          </template>
+          <!-- ✅ 닫는 태그 -->
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- (2) 가입 크루 목록 모달 -->
+    <Teleport to="body">
+      <div v-if="crewsModal.open" class="cm-backdrop" @click.self="closeCrewsModal">
+        <div class="cm-modal cm-modal--tall">
+          <div class="cm-modal-hd cm-modal-hd--between">
+            <div class="cm-title">가입한 크루 목록</div>
+            <button class="cm-x" @click="closeCrewsModal">✕</button>
+          </div>
+
+          <div class="cm-modal-body cm-scroll">
+            <div v-if="crewsModal.loading" class="cm-muted">불러오는 중...</div>
+            <div v-else-if="crewsModal.items.length === 0" class="cm-muted">가입한 크루가 없습니다.</div>
+            <div v-else class="cm-crew-list">
+              <div v-for="c in crewsModal.items" :key="c.crewId" class="cm-crew-card">
+                <img v-if="c.crewImage" :src="c.crewImage" :alt="c.crewName" class="cm-crew-img" />
+                <div v-else class="cm-crew-img cm-crew-img--ph">
+                  <svg class="cm-icon cm-icon--crew" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="15" cy="5" r="2"></circle>
+                    <path d="M13 8l-2 4 3 2 2-3 3 1"></path>
+                    <path d="M10 12l-4 3"></path>
+                    <path d="M13 14l-2 5"></path>
                   </svg>
-                  {{ c.currentMemberCount }}명
+                </div>
+                <div class="cm-crew-info">
+                  <div class="cm-crew-name">{{ c.crewName }}</div>
+                  <div class="cm-crew-sub">
+                    <span v-if="c.categoryType" class="cm-crew-cat">{{ categoryLabel(c.categoryType) }}</span>
+                    <span v-if="c.region || c.district" class="cm-crew-loc">
+                      <span> · </span>
+                      <svg class="cm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 21s-6-5.6-6-10a6 6 0 1112 0c0 4.4-6 10-6 10z"></path>
+                        <circle cx="12" cy="11" r="2.2"></circle>
+                      </svg>
+                      {{ [c.region, c.district].filter(Boolean).join(" ") }}
+                    </span>
+                  </div>
+                  <div v-if="c.currentMemberCount != null" class="cm-crew-count">
+                    <svg class="cm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="9" cy="8" r="3"></circle>
+                      <circle cx="17" cy="9" r="2.5"></circle>
+                      <path d="M3 19a6 6 0 0112 0"></path>
+                      <path d="M13.5 19a4.5 4.5 0 018.5 0"></path>
+                    </svg>
+                    {{ c.currentMemberCount }}명
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="cm-modal-ft">
-          <button class="cm-primary-btn" @click="closeCrewsModal">닫기</button>
+          <div class="cm-modal-ft">
+            <button class="cm-primary-btn" @click="closeCrewsModal">닫기</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
