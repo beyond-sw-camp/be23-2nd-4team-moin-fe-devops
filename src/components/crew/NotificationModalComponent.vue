@@ -164,6 +164,19 @@ export default {
       const targetId = notification.targetId ?? notification.crewId ?? notification.meetingId;
       const crewId = notification.crewId ?? (refType === 'CREW' ? targetId : null);
       const meetingId = notification.meetingId ?? (refType === 'MEETING' ? targetId : null);
+      const message = (notification.message || '').toString();
+
+      // ✅ 1순위: 백엔드가 meetingId를 준 경우 → 무조건 모임 디테일
+      if (meetingId) {
+        return crewId
+          ? { path: `/meeting/${meetingId}`, query: { crewId } }
+          : { path: `/meeting/${meetingId}` };
+      }
+
+      // ✅ 2순위(임시 땜빵): 메시지에 "모임에 참여했습니다"가 포함되면 targetId를 meetingId로 간주
+      if (type === 'APPLY' && message.includes('모임에 참여했습니다') && targetId) {
+        return { path: `/meeting/${targetId}` };
+      }
 
       const cId = targetId || crewId;
       if (type === 'APPLY' && cId) {

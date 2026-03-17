@@ -477,7 +477,7 @@ export default {
     },
     parseDate(dt) {
       if (!dt) return null;
-      const d = dayjs.utc(dt);
+      const d = dayjs(dt);
       return d.isValid() ? d.toDate() : null;
     },
     effectiveRecruitStatus(m) {

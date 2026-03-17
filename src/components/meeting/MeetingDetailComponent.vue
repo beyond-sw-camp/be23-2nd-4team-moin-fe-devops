@@ -417,6 +417,15 @@
     <!-- 신고 토스트 (빨간색) -->
     <div v-if="reportToastMessage" class="toast toast--red">{{ reportToastMessage }}</div>
 
+    <!-- 글로벌 토스트 (결제 완료 등) -->
+    <div
+      v-if="globalToastMessage"
+      class="toast"
+      :class="globalToastType === 'error' ? 'toast--red' : 'toast--green'"
+    >
+      {{ globalToastMessage }}
+    </div>
+
     <!-- 차기 모임장 모달 -->
     <div v-if="showNextOwnerModal" class="modal-backdrop" @click.self="showNextOwnerModal = false; selectedNextOwner = null;">
       <div class="modal-box">
@@ -658,6 +667,8 @@ export default {
         reason: "", detail: "", loading: false, reportId: null, cancelLoading: false,
       },
       reportToastMessage: "",
+      globalToastMessage: "",
+      globalToastType: "info",
       reportReasons: REPORT_REASONS,
       reportDropOpen: false,
       showPaidNoticeModal: false,
@@ -1202,9 +1213,9 @@ export default {
         await API.post("/meetingMember/payment-success", { crewId: this.crewId, meetingId: this.meetingId, merchantUid, impUid });
         this.isParticipating = true;
         await this.fetchMeetingDetail(); await this.fetchMemberList(); this.computeOwnerFromParticipants();
-        alert("결제가 완료되어 모임 참여가 확정되었습니다.");
+        this.showGlobalToast("결제가 완료되어 모임 참여가 확정되었습니다.", "success");
       } catch (e) {
-        alert(e.response?.data?.message || "결제 검증에 실패했습니다. 고객센터에 문의해주세요.");
+        this.showGlobalToast(e.response?.data?.message || "결제 검증에 실패했습니다. 고객센터에 문의해주세요.", "error");
       } finally { this.paymentLoading = false; }
     },
 
@@ -1219,7 +1230,7 @@ export default {
         this.statusChangeResult = `상태가 "${this.statusLabel(newStatus)}"으로 변경되었습니다.`;
         setTimeout(() => { this.statusChangeResult = ""; }, 3000);
         await this.fetchMeetingDetail();
-      } catch (e) { alert(e.response?.data?.message || "상태 변경에 실패했습니다."); }
+      } catch (e) { this.showGlobalToast(e.response?.data?.message || "상태 변경에 실패했습니다.", "error"); }
     },
 
     handleEdit() {
@@ -1431,6 +1442,13 @@ export default {
         this.showReportToast("신고가 취소되었습니다.");
       } catch (e) { this.showReportToast(e.response?.data?.message || "신고 취소에 실패했습니다."); }
       finally { this.reportModal.cancelLoading = false; }
+    },
+    showGlobalToast(message, type = "info") {
+      this.globalToastMessage = message;
+      this.globalToastType = type;
+      setTimeout(() => {
+        this.globalToastMessage = "";
+      }, 3000);
     },
   },
 };

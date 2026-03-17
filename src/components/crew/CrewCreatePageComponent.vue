@@ -1,5 +1,14 @@
-﻿<template>
+<template>
   <div class="page-root">
+
+    <!-- 토스트 -->
+    <div
+      v-if="toastMessage"
+      class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg"
+      :class="toastType === 'error' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'"
+    >
+      {{ toastMessage }}
+    </div>
 
     <!-- GNB -->
     <header class="gnb">
@@ -441,6 +450,8 @@ export default {
       },
       previewImage: null,
       errors: {},
+      toastMessage: '',
+      toastType: 'info',
     }
   },
   computed: {
@@ -569,18 +580,25 @@ export default {
     const res = await API.post('/crew/create', dto)
     const crewId = res.data
 
-    alert('크루가 생성되었습니다!')
+    this.showToast('크루가 생성되었습니다!', 'success')
     if (this.$router && crewId) this.$router.push(`/crew/${crewId}`)
     else {
       localStorage.setItem('lastCreatedCrewId', String(crewId))
       this.doNavigate('home')
     }
   } catch (e) {
-    alert(e.response?.data?.error_message || e.response?.data?.message || '크루 생성에 실패했습니다.')
+    this.showToast(e.response?.data?.error_message || e.response?.data?.message || '크루 생성에 실패했습니다.', 'error')
   } finally {
     this.submitting = false
   }
 },
+    showToast(message, type = 'info') {
+      this.toastMessage = message
+      this.toastType = type
+      setTimeout(() => {
+        this.toastMessage = ''
+      }, 3000)
+    },
   }
 }
 </script>
