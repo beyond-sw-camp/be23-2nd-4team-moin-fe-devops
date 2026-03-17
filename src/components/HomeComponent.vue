@@ -453,7 +453,7 @@
 import axios from "axios";
 import LnbMenuComponent from "@/components/common/LnbMenuComponent.vue";
 
-const API = axios.create({ baseURL: "http://localhost:8080" });
+const API = axios.create({ baseURL: process.env.VUE_APP_API_BASE_URL });
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
