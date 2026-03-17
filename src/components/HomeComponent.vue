@@ -36,15 +36,18 @@
         <!-- 검색창 + 추천 검색어 드롭다운 -->
         <div class="gnb-search" ref="gnbSearchRef">
           <input
+            ref="searchInput"
             type="text"
-            v-model="searchKeyword"
             placeholder="찾고 싶은 크루를 검색해보세요!"
+            autocomplete="off"
             @input="onSearchInput"
-            @keyup.enter="onSearchSubmit"
+            @compositionstart="onSearchCompositionStart"
+            @compositionupdate="onSearchCompositionUpdate"
+            @compositionend="onSearchCompositionEnd"
+            @keydown.enter.prevent="onSearchSubmit"
             class="gnb-search-input"
           />
-          <button @click="onSearchSubmit" class="gnb-search-btn">
-            <!-- 검색 아이콘 -->
+          <button @click="onSearchSubmit" class="gnb-search-btn" type="button">
             <svg fill="currentColor" viewBox="0 0 24 24" style="width:20px;height:20px;color:#888;">
               <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
             </svg>
@@ -83,6 +86,7 @@
         <button
           @click="clearDistrict"
           :class="['d-chip', !search.district && 'd-chip--on']"
+          type="button"
         >
           전체
         </button>
@@ -91,6 +95,7 @@
           :key="d"
           @click="toggleDistrict(d)"
           :class="['d-chip', search.district === d && 'd-chip--on']"
+          type="button"
         >
           {{ d }}
         </button>
@@ -98,7 +103,6 @@
     </div>
 
     <div class="body-wrap">
-      <!-- ======= LNB (공통 컴포넌트) ======= -->
       <LnbMenuComponent
         :active-nav="activeNavForLnb"
         :category-options="categoryOptions"
@@ -112,10 +116,7 @@
         @recent-click="(id) => $router.push('/crew/' + id)"
       />
 
-      <!-- ======= 메인 ======= -->
       <main class="main">
-
-        <!-- ① HOT 크루 -->
         <section class="section">
           <div class="sec-hd">
             <h2 class="sec-title">
@@ -202,7 +203,6 @@
           </div>
         </section>
 
-        <!-- ② 전체 크루 (8개씩 더보기) -->
         <section class="section">
           <div class="sec-hd">
             <h2 class="sec-title">
@@ -313,26 +313,19 @@
             v-if="!allSection.loading && allSection.hasMore"
             class="more-btn-wrap"
           >
-            <button @click="loadMoreSection(allSection)" class="more-btn">
+            <button @click="loadMoreSection(allSection)" class="more-btn" type="button">
               크루 더보기
-              <span class="more-btn-count"
-                >({{ remainCount(allSection) }}개 남음)</span
-              >
+              <span class="more-btn-count">({{ remainCount(allSection) }}개 남음)</span>
             </button>
           </div>
           <div
-            v-if="
-              !allSection.hasMore &&
-              allSection.list.length > 0 &&
-              !allSection.loading
-            "
+            v-if="!allSection.hasMore && allSection.list.length > 0 && !allSection.loading"
             class="end-msg"
           >
             모든 크루를 불러왔습니다
           </div>
         </section>
 
-        <!-- ③ 카테고리별 크루 섹션 (8개씩 더보기) -->
         <section
           v-for="sec in categorySections"
           :key="sec.categoryValue"
@@ -439,11 +432,9 @@
             <div class="spinner" />
           </div>
           <div v-if="!sec.loading && sec.hasMore" class="more-btn-wrap">
-            <button @click="loadMoreSection(sec)" class="more-btn">
+            <button @click="loadMoreSection(sec)" class="more-btn" type="button">
               {{ sec.label }} 크루 더보기
-              <span class="more-btn-count"
-                >({{ remainCount(sec) }}개 남음)</span
-              >
+              <span class="more-btn-count">({{ remainCount(sec) }}개 남음)</span>
             </button>
           </div>
           <div
@@ -462,7 +453,7 @@
 import axios from "axios";
 import LnbMenuComponent from "@/components/common/LnbMenuComponent.vue";
 
-const API = axios.create({ baseURL: process.env.VUE_APP_API_BASE_URL });
+const API = axios.create({ baseURL: "http://localhost:8080" });
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -549,16 +540,19 @@ export default {
       ),
       outsideClickHandler: null,
       recentCrews: [],
-      // 검색창 자동완성
       searchKeyword: "",
       suggestions: [],
       showDropdown: false,
       loadingSuggest: false,
       suggestDebounceTimer: null,
+      suggestRequestSeq: 0,
+      isComposingSearch: false,
     };
   },
   computed: {
-    activeNavForLnb() { return "home"; },
+    activeNavForLnb() {
+      return "home";
+    },
     recentCrewsWithLabel() {
       return this.recentCrews.map((c) => ({
         ...c,
@@ -566,38 +560,59 @@ export default {
         categoryLabel: this.categoryLabel(c.categoryType || c.category),
       }));
     },
-    showDistrictBar() { return !!this.search.region; },
-    districtOptions() { return DISTRICTS_BY_REGION[this.search.region] || []; },
+    showDistrictBar() {
+      return !!this.search.region;
+    },
+    districtOptions() {
+      return DISTRICTS_BY_REGION[this.search.region] || [];
+    },
     hasAnyFilter() {
-      return !!this.search.region || !!this.search.district ||
-        this.search.categoryTypes.length > 0 || !!this.search.name?.trim();
+      return !!this.search.region ||
+        !!this.search.district ||
+        this.search.categoryTypes.length > 0 ||
+        !!this.search.name?.trim();
     },
   },
   watch: {
-    "search.region"() { this.search.district = ""; },
+    "search.region"() {
+      this.search.district = "";
+    },
   },
   mounted() {
     const categoryQuery = this.$route?.query?.category;
     if (categoryQuery) this.search.categoryTypes = [categoryQuery];
+
     this.loadRecentCrews();
     this.fetchPopular();
     this.initAllSections();
+
+    this.$nextTick(() => {
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.value = this.searchKeyword;
+      }
+    });
+
     this.outsideClickHandler = (e) => {
-      if (this.$refs.regionDrop && !this.$refs.regionDrop.contains(e.target))
+      if (this.$refs.regionDrop && !this.$refs.regionDrop.contains(e.target)) {
         this.regionDropOpen = false;
-      if (this.$refs.gnbSearchRef && !this.$refs.gnbSearchRef.contains(e.target))
+      }
+      if (this.$refs.gnbSearchRef && !this.$refs.gnbSearchRef.contains(e.target)) {
         this.showDropdown = false;
+      }
     };
+
     document.addEventListener("click", this.outsideClickHandler);
   },
   beforeUnmount() {
-    if (this.outsideClickHandler)
+    if (this.outsideClickHandler) {
       document.removeEventListener("click", this.outsideClickHandler);
-    if (this.suggestDebounceTimer) clearTimeout(this.suggestDebounceTimer);
+    }
+    this.cancelSuggest();
   },
   methods: {
     formatLocation(region, district) {
-      const r = (region || "").trim(), d = (district || "").trim();
+      const r = (region || "").trim();
+      const d = (district || "").trim();
       if (!r && !d) return "";
       if (r && d) return `${r} ${d}`;
       return r || d;
@@ -611,7 +626,120 @@ export default {
     normalizeCrew(c) {
       return { ...c, favorite: c.favorite === true, _favLoading: false };
     },
-    setMenu(m) { this.activeMenu = m; },
+    setMenu(m) {
+      this.activeMenu = m;
+    },
+
+    getSearchInputValue() {
+      return this.$refs.searchInput?.value ?? "";
+    },
+    setSearchInputValue(value = "") {
+      const nextValue = value ?? "";
+      this.searchKeyword = nextValue;
+      if (this.$refs.searchInput) {
+        this.$refs.searchInput.value = nextValue;
+      }
+      return nextValue;
+    },
+    syncKeywordFromDom() {
+      window.requestAnimationFrame(() => {
+        const value = this.getSearchInputValue();
+        this.searchKeyword = value;
+        this.queueSuggest(value);
+      });
+    },
+    cancelSuggest() {
+      if (this.suggestDebounceTimer) {
+        clearTimeout(this.suggestDebounceTimer);
+        this.suggestDebounceTimer = null;
+      }
+      this.suggestRequestSeq += 1;
+      this.loadingSuggest = false;
+    },
+    onSearchCompositionStart() {
+      this.isComposingSearch = true;
+    },
+    onSearchCompositionUpdate() {
+      this.syncKeywordFromDom();
+    },
+    onSearchInput(e) {
+      if (e?.isComposing || this.isComposingSearch) {
+        this.syncKeywordFromDom();
+        return;
+      }
+
+      const value = e?.target?.value ?? "";
+      this.searchKeyword = value;
+      this.queueSuggest(value);
+    },
+    onSearchCompositionEnd() {
+      this.isComposingSearch = false;
+      this.syncKeywordFromDom();
+    },
+    queueSuggest(keyword) {
+      if (this.suggestDebounceTimer) {
+        clearTimeout(this.suggestDebounceTimer);
+      }
+
+      const q = (keyword || "").trim();
+
+      if (!q) {
+        this.cancelSuggest();
+        this.suggestions = [];
+        this.showDropdown = false;
+        return;
+      }
+
+      const requestId = ++this.suggestRequestSeq;
+
+      this.suggestDebounceTimer = setTimeout(async () => {
+        this.loadingSuggest = true;
+        this.showDropdown = true;
+
+        try {
+          const res = await API.get("/crew/suggest", {
+            params: { keyword: q },
+          });
+
+          if (requestId !== this.suggestRequestSeq) return;
+
+          const raw = res.data;
+          let list = Array.isArray(raw) ? raw : (raw?.content ?? raw?.data ?? []);
+          if (!Array.isArray(list)) list = [];
+
+          this.suggestions = list.map((item) => ({
+            id: item.id ?? item.crewId,
+            name: item.name ?? item.crewName ?? "",
+          }));
+        } catch (e) {
+          if (requestId !== this.suggestRequestSeq) return;
+          console.error("[crew/suggest]", e?.response?.status, e?.message || e);
+          this.suggestions = [];
+          this.showDropdown = false;
+        } finally {
+          if (requestId === this.suggestRequestSeq) {
+            this.loadingSuggest = false;
+            this.suggestDebounceTimer = null;
+          }
+        }
+      }, 180);
+    },
+    applySearch(keyword) {
+      const normalized = (keyword || "").trim();
+
+      this.cancelSuggest();
+      this.setSearchInputValue(normalized);
+      this.search.name = normalized;
+      this.suggestions = [];
+      this.showDropdown = false;
+
+      const query = {};
+      if (this.search.region) query.region = this.search.region;
+      if (this.search.district) query.district = this.search.district;
+      if (normalized) query.name = normalized;
+
+      this.$router.push({ path: "/crew/search", query });
+    },
 
     onLnbNavClick(key) {
       if (key === "home") this.$router.push("/");
@@ -622,7 +750,6 @@ export default {
       else if (key === "meetings") this.$router.push("/my/meetings");
     },
     onLnbCategoryClick(categoryValue) {
-      // LNB 카테고리 → SearchComponent로 이동
       this.$router.push({ path: "/crew/search", query: { category: categoryValue } });
     },
 
@@ -630,7 +757,6 @@ export default {
       return Math.min(sec.total - sec.list.length, PAGE_SIZE);
     },
 
-    // ── 지역: 버튼 클릭 시 드롭다운, 지역 클릭 시 전체 검색 페이지로 이동 ──────────────────
     toggleRegionDropdown() {
       this.regionDropOpen = !this.regionDropOpen;
     },
@@ -655,60 +781,25 @@ export default {
       this.search.district = this.search.district === v ? "" : v;
       this.resetAllSections();
     },
-    clearDistrict() { this.search.district = ""; this.resetAllSections(); },
-
-    // ── 검색어: 엔터 or 돋보기 버튼 → SearchComponent 이동 ──
-    onSearchSubmit() {
-      this.showDropdown = false;
-      const query = {};
-      if (this.search.region) query.region = this.search.region;
-      if (this.search.district) query.district = this.search.district;
-      const name = (this.searchKeyword || "").trim();
-      if (name) query.name = name;
-      this.$router.push({ path: "/crew/search", query });
+    clearDistrict() {
+      this.search.district = "";
+      this.resetAllSections();
     },
 
-    // ── 자동완성 드롭다운 (선택 시에도 SearchComponent 이동) ─
-    onSearchInput() {
-      if (this.suggestDebounceTimer) clearTimeout(this.suggestDebounceTimer);
-      const q = (this.searchKeyword || "").trim();
-      if (!q) { this.suggestions = []; this.showDropdown = false; return; }
-      this.suggestDebounceTimer = setTimeout(() => { this.fetchSuggest(); }, 300);
-    },
-    async fetchSuggest() {
-      const q = (this.searchKeyword || "").trim();
-      if (!q) { this.suggestions = []; this.showDropdown = false; this.loadingSuggest = false; return; }
-      this.loadingSuggest = true;
-      this.showDropdown = true;
-      try {
-        const res = await API.get("/crew/suggest", { params: { keyword: q } });
-        const raw = res.data;
-        let list = Array.isArray(raw) ? raw : (raw?.content ?? raw?.data ?? []);
-        if (!Array.isArray(list)) list = [];
-        this.suggestions = list.map((item) => ({
-          id: item.id ?? item.crewId,
-          name: item.name ?? item.crewName ?? "",
-        }));
-      } catch (e) {
-        console.error("[crew/suggest]", e?.response?.status, e?.message || e);
-        this.suggestions = [];
-        this.showDropdown = false;
-      } finally {
-        this.loadingSuggest = false;
+    onSearchSubmit(e) {
+      if (e?.isComposing || e?.keyCode === 229 || this.isComposingSearch) {
+        setTimeout(() => {
+          this.applySearch(this.getSearchInputValue());
+        }, 0);
+        return;
       }
+
+      this.applySearch(this.getSearchInputValue());
     },
     selectSuggestion(crew) {
-      // 자동완성 항목 선택 → SearchComponent로 이동
-      this.searchKeyword = crew.name || "";
-      this.showDropdown = false;
-      this.suggestions = [];
-      const query = { name: this.searchKeyword };
-      if (this.search.region) query.region = this.search.region;
-      if (this.search.district) query.district = this.search.district;
-      this.$router.push({ path: "/crew/search", query });
+      this.applySearch(crew.name || "");
     },
 
-    // ── 섹션 데이터 ──────────────────────────────────────────
     baseParams(extra = {}) {
       return {
         size: PAGE_SIZE,
@@ -721,7 +812,11 @@ export default {
     resetAllSections() {
       Object.assign(this.allSection, makeSection());
       this.categorySections.forEach((sec) => {
-        sec.list = []; sec.page = 0; sec.total = 0; sec.hasMore = false; sec.loading = false;
+        sec.list = [];
+        sec.page = 0;
+        sec.total = 0;
+        sec.hasMore = false;
+        sec.loading = false;
       });
       this.initAllSections();
     },
@@ -768,14 +863,24 @@ export default {
     },
 
     loadRecentCrews() {
-      try { this.recentCrews = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
-      catch (e) { this.recentCrews = []; }
+      try {
+        this.recentCrews = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+      } catch (e) {
+        this.recentCrews = [];
+      }
     },
     saveRecentCrews() {
       localStorage.setItem(RECENT_KEY, JSON.stringify(this.recentCrews));
     },
     addRecentCrew(crew) {
-      const c = { crewId: crew.crewId, crewName: crew.crewName, crewImage: crew.crewImage, categoryType: crew.categoryType, region: crew.region, district: crew.district };
+      const c = {
+        crewId: crew.crewId,
+        crewName: crew.crewName,
+        crewImage: crew.crewImage,
+        categoryType: crew.categoryType,
+        region: crew.region,
+        district: crew.district,
+      };
       this.recentCrews = [c, ...this.recentCrews.filter((x) => x.crewId !== crew.crewId)].slice(0, MAX_RECENT);
       this.saveRecentCrews();
     },
@@ -783,36 +888,48 @@ export default {
       this.recentCrews = this.recentCrews.filter((c) => c.crewId !== id);
       this.saveRecentCrews();
     },
-    clearRecent() { this.recentCrews = []; this.saveRecentCrews(); },
-    viewCrew(crew) { this.addRecentCrew(crew); this.$router.push("/crew/" + crew.crewId); },
+    clearRecent() {
+      this.recentCrews = [];
+      this.saveRecentCrews();
+    },
+    viewCrew(crew) {
+      this.addRecentCrew(crew);
+      this.$router.push("/crew/" + crew.crewId);
+    },
 
     async toggleFavorite(crew) {
       const token = localStorage.getItem("token");
-      if (!token) { alert("로그인이 필요합니다."); this.$router.push("/login"); return; }
+      if (!token) {
+        alert("로그인이 필요합니다.");
+        this.$router.push("/login");
+        return;
+      }
       if (crew._favLoading) return;
+
       crew._favLoading = true;
       try {
-    if (crew.favorite) {
-      // 찜 취소 → DELETE
-      await API.delete(`/crew/${crew.crewId}/favorite`);
-      crew.favorite = false;
-    } else {
-      // 찜 추가 → POST
-      await API.post(`/crew/${crew.crewId}/favorite`);
-      crew.favorite = true;
-    }
-    this.syncFavorite(crew.crewId, crew.favorite);
-  } catch (e) {
-    alert(e.response?.data?.message || "찜 처리에 실패했습니다.");
-  } finally {
-    crew._favLoading = false;
-  }
-},
+        if (crew.favorite) {
+          await API.delete(`/crew/${crew.crewId}/favorite`);
+          crew.favorite = false;
+        } else {
+          await API.post(`/crew/${crew.crewId}/favorite`);
+          crew.favorite = true;
+        }
+        this.syncFavorite(crew.crewId, crew.favorite);
+      } catch (e) {
+        alert(e.response?.data?.message || "찜 처리에 실패했습니다.");
+      } finally {
+        crew._favLoading = false;
+      }
+    },
     syncFavorite(crewId, favorite) {
       for (const c of this.popularCrews) if (c.crewId === crewId) c.favorite = favorite;
       for (const c of this.allSection.list) if (c.crewId === crewId) c.favorite = favorite;
-      for (const sec of this.categorySections)
-        for (const c of sec.list) if (c.crewId === crewId) c.favorite = favorite;
+      for (const sec of this.categorySections) {
+        for (const c of sec.list) {
+          if (c.crewId === crewId) c.favorite = favorite;
+        }
+      }
     },
   },
 };
@@ -1234,4 +1351,3 @@ export default {
   .h-scroll, .crew-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
 </style>
-

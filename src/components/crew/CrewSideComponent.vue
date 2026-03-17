@@ -238,6 +238,8 @@ export default {
   gap: 16px;
   position: sticky;
   top: 20px;
+  isolation: isolate; 
+   z-index: 1;
 }
 .side-card {
   background: #fff;

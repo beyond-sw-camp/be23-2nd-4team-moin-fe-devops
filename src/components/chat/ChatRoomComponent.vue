@@ -790,7 +790,7 @@ export default {
   border-radius: 9999px;
   pointer-events: none;
 }
-.room-view { display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; }
+.room-view { display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index: 0;}
 
 /* 공지 배너 (크루 채팅과 동일) */
 .notice-banner {
@@ -798,6 +798,8 @@ export default {
   box-shadow: 0 4px 14px rgba(74, 127, 247, 0.38);
   flex-shrink: 0;
   cursor: pointer;
+  position: relative;
+  z-index: 1;  
 }
 .notice-banner-inner {
   display: flex;
